@@ -3,7 +3,13 @@ use std::{
     env
 };
 
-mod repl;
+mod io;
+mod shell;
+mod lex;
+mod parse;
+mod eval;
+mod vars;
+mod ast;
 
 fn main() {
     let mut args: Vec<String> = env::args().collect();
@@ -35,12 +41,17 @@ fn main() {
 
     if scripts.len() == 0 {
         // enter interactive mode (REPL)
-        repl::repl(">>> ".to_string());
+        io::repl(">>> ".to_string());
+        process::exit(0);
     }
-    else {
-        // execute the specified scripts
-
-        println!("Executing {:?}", scripts);
+     
+    // execute the specified scripts
+    for path in scripts {
+        let exit_code = shell::run_input(io::read_file(&*path));
+        println!("\"{}\" terminated with exit code {}", path, exit_code);
+        if exit_code != 0 {
+            process::exit(exit_code);
+        }
     }
 }
 
