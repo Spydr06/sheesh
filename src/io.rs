@@ -21,7 +21,7 @@ pub fn repl(prompt: String) {
         io::stdin().read_line(&mut input).unwrap();
 
         // run the implemented prompt
-        shell::run_input(input);
+        shell::run_input(&mut input);
     }
 }
 

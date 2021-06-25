@@ -47,7 +47,7 @@ fn main() {
      
     // execute the specified scripts
     for path in scripts {
-        let exit_code = shell::run_input(io::read_file(&*path));
+        let exit_code = shell::run_input(&mut io::read_file(&*path));
         println!("\"{}\" terminated with exit code {}", path, exit_code);
         if exit_code != 0 {
             process::exit(exit_code);
