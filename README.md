@@ -25,7 +25,7 @@ So (hopefully) the syntax will look something like this:
 # import another script
 require 'foo.sh'
 
-# set some useful alias
+# set a useful alias
 alias ls = "ls -al"
 
 # define some functions
@@ -45,4 +45,4 @@ foo()
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
 ## License
-sheesh is licensed under the [MIT](https://mit-license.org/)
+sheesh is licensed under the [MIT license](https://mit-license.org/).
