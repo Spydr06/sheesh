@@ -4,6 +4,7 @@ use lazy_static::lazy_static;
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum TokenKind {
     ID,
+    VAR,
     STRING,
 
     LPAREN,
@@ -17,6 +18,7 @@ pub enum TokenKind {
     ELSE,
     ALIAS,
     EXIT,
+    HELP,
 
     EOF
 }
@@ -36,6 +38,7 @@ lazy_static! {
         map.insert("else".to_string(), TokenKind::ELSE);
         map.insert("alias".to_string(), TokenKind::ALIAS);
         map.insert("exit".to_string(), TokenKind::EXIT);
+        map.insert("help".to_string(), TokenKind::HELP);
         map
     };
 }
@@ -81,6 +84,17 @@ impl Token {
                 }
 
                 Ok(Token::new(TokenKind::STRING, input[0..len].to_string()))
+            }
+
+            '$' => {
+                let mut len = 1;
+                c = next!(chars);
+                while c.is_alphanumeric() || c == '_' {
+                    len += 1;
+                    c = next!(chars);
+                }
+
+                Ok(Token::new(TokenKind::VAR, input[0..len].to_string()))
             }
 
             '(' => { Ok(Token::new(TokenKind::LPAREN, '('.to_string())) }
