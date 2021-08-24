@@ -1,27 +1,22 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, process::exit};
 use lazy_static::lazy_static;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum TokenKind {
     ID,
-    INT,
-    CHAR,
     STRING,
 
     LPAREN,
     RPAREN,
-    LBRACE,
-    RBRACE,
-    LBRACKET,
-    RBRACKET,
+    
+    COMMA,
 
     DEF,
     END,
     IF,
     ELSE,
-    FOR,
-    IN,
     ALIAS,
+    EXIT,
 
     EOF
 }
@@ -39,10 +34,18 @@ lazy_static! {
         map.insert("end".to_string(), TokenKind::END);
         map.insert("if".to_string(), TokenKind::IF);
         map.insert("else".to_string(), TokenKind::ELSE);
-        map.insert("for".to_string(), TokenKind::FOR);
-        map.insert("in".to_string(), TokenKind::IN);
         map.insert("alias".to_string(), TokenKind::ALIAS);
+        map.insert("exit".to_string(), TokenKind::EXIT);
         map
+    };
+}
+
+#[macro_export]
+macro_rules! next {
+    ( $iter:expr ) => {
+        {
+           $iter.next().unwrap_or('\0')
+        }
     };
 }
 
@@ -63,66 +66,49 @@ impl Token {
     }
 
     pub fn get_token(input: String) -> Result<Token, String> {
-        let mut iter = input.chars();
-        let char = iter.next().unwrap();
-
-        if char.is_digit(10) {
-            let mut num_end = 1;
-            
-            while iter.next().unwrap().is_digit(10) {
-                num_end += 1;
-            }
-            
-            return Ok(Token::new(TokenKind::INT, input[0..num_end].to_string()));
-        }
-
-        if char.is_alphabetic() {
-            let mut id_end = 1;
-            while iter.next().unwrap().is_alphanumeric() {
-                id_end += 1;
-            }
-            let val = input[0..id_end].to_string();
-
-            if KEYWORDS.contains_key(&val) {
-                return Ok(Token::new(*KEYWORDS.get(&val).unwrap(), val))
-            }
-
-            return Ok(Token::new(TokenKind::ID, val));
-        }
-
-        match char {
-            '(' => {
-                return Ok(Token::new(TokenKind::LPAREN, '('.to_string()));
-            }
-            ')' => {
-                return Ok(Token::new(TokenKind::RPAREN, ')'.to_string()));
-            }
-            '{' => {
-                return Ok(Token::new(TokenKind::LBRACE, '{'.to_string()));
-            }
-            '}' => {
-                return Ok(Token::new(TokenKind::RBRACE, '}'.to_string()));
-            }
-            '[' => {
-                return Ok(Token::new(TokenKind::LBRACKET, '['.to_string()));
-            }
-            ']' => {
-                return Ok(Token::new(TokenKind::RBRACKET, ']'.to_string()));
-            }
-
+        let mut chars = input.chars();
+        let mut c = next!(chars);
+        match c {
             '"' => {
+                let mut len = 2;
+                c = next!(chars);
+                while c != '"' {
+                    if c == '\0' {
+                        return Err("Unterminated String Literal".to_string());
+                    }
+                    len += 1;
+                    c = next!(chars);
+                }
 
+                Ok(Token::new(TokenKind::STRING, input[0..len].to_string()))
             }
 
-            ''' => {
-                
-            }
+            '(' => { Ok(Token::new(TokenKind::LPAREN, '('.to_string())) }
+            ')' => { Ok(Token::new(TokenKind::RPAREN, ')'.to_string())) }
+            ',' => { Ok(Token::new(TokenKind::COMMA, ','.to_string())) }
+            '\0' => { Ok(Token::new(TokenKind::EOF, "EOF".to_string())) }
 
-            '\0' => {
-                return Ok(Token::new(TokenKind::EOF, "EOF".to_string()));
-            }
             _ => {
-                return Err(format!("Unknown token '{}'", char));
+                let mut len = 0;
+                loop {
+                    if c == '\\' {
+                        c = next!(chars);
+                        len += 1;
+                        if c == ' ' {
+                            c = next!(chars);
+                            len += 1;
+                        }
+                    }
+                    if c.is_whitespace() {
+                        break;
+                    }
+
+                    len += 1;
+                    c = next!(chars);
+                }
+
+                let val = input[0..len].to_string();
+                Ok(Token::new(*KEYWORDS.get(&val).unwrap_or( &TokenKind::ID), val))
             }
         }
     }
@@ -148,13 +134,14 @@ pub fn lex_tokens(input: String) -> Result<Vec<Token>, String> {
 
         let tok_res = Token::get_token(input[c..].to_string());
         if tok_res.is_err() {
-            return Err(tok_res.err().unwrap());
+            eprintln!("{}", tok_res.as_ref().unwrap_err());
+            exit(1)
         }
 
         let tok = tok_res.unwrap();
+
         c += tok.get_val().len();
         tokens.push(tok.clone());
-        println!("Token: {:?}", tok);
 
         if tok.get_kind() == TokenKind::EOF {
             break;
