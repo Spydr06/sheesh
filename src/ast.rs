@@ -1,18 +1,18 @@
 use std::ptr;
 use crate::lexer::Token;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ASTNodeKind {
-    AST_SCOPE,
+    SCOPE,
 
-    AST_VAR,
-    AST_ALIAS,
+    VAR,
+    ALIAS,
 
-    AST_FN,
-    AST_ARG,
+    FN,
+    ARG,
 
-    AST_IF,
-    AST_EXIT
+    IF,
+    EXIT
 }
 
 #[derive(Clone, Debug)]
@@ -33,7 +33,7 @@ impl ASTNode {
     pub fn new_scope(contents: Vec<ASTNode>) -> Self {
         Self {
             tok: Token::default(),
-            kind: ASTNodeKind::AST_SCOPE,
+            kind: ASTNodeKind::SCOPE,
             callee: String::default(),
             value: ptr::null(),
             op: '\0',
@@ -46,7 +46,7 @@ impl ASTNode {
     pub fn new_alias(tok: Token, callee: String, value: *const ASTNode) -> Self {
         Self {
             tok,
-            kind: ASTNodeKind::AST_ALIAS,
+            kind: ASTNodeKind::ALIAS,
             callee,
             value,
             op: '\0',
@@ -59,7 +59,7 @@ impl ASTNode {
     pub fn new_var(tok: Token, callee: String) -> Self {
         Self {
             tok,
-            kind: ASTNodeKind::AST_VAR,
+            kind: ASTNodeKind::VAR,
             callee,
             value: ptr::null(),
             op: '\0',
@@ -72,7 +72,7 @@ impl ASTNode {
     pub fn new_exit(tok: Token, exit_code: *const ASTNode) -> Self {
         Self {
             tok,
-            kind: ASTNodeKind::AST_EXIT,
+            kind: ASTNodeKind::EXIT,
             callee: String::default(),
             value: exit_code,
             op: '\0',
@@ -80,5 +80,13 @@ impl ASTNode {
             right: ptr::null(),
             contents: vec![]
         }
+    }
+
+    pub fn get_kind(&self) -> ASTNodeKind {
+        self.kind.clone()
+    }
+
+    pub fn get_contents(&self) -> Vec<ASTNode> {
+        self.contents.clone()
     }
 }

@@ -122,7 +122,7 @@ impl Token {
             '(' => { Ok(Token::new(TokenKind::LPAREN, '('.to_string())) }
             ')' => { Ok(Token::new(TokenKind::RPAREN, ')'.to_string())) }
             ',' => { Ok(Token::new(TokenKind::COMMA, ','.to_string())) }
-            '|' => { Ok(Token::new(TokenKind::COMMA, ','.to_string())) }
+            '|' => { Ok(Token::new(TokenKind::PIPE, '|'.to_string())) }
             '=' => { Ok(Token::new(TokenKind::EQ, '='.to_string())) }
             '>' => { Ok({
                     c = next!(chars);

@@ -33,20 +33,28 @@ impl ParserData {
     }
 }
 
-pub fn parse_ast(tokens: Vec<Token>) -> ASTNode {
+pub fn parse_ast(tokens: Vec<Token>) -> Result<ASTNode, String> {
     let mut parser = ParserData::new(tokens);
     
     parse_scope(&mut parser)
 }
 
-fn parse_scope(parser: &mut ParserData) -> ASTNode {
+fn parse_scope(parser: &mut ParserData) -> Result<ASTNode, String> {
     let mut contents: Vec<ASTNode> = vec![];
 
     while parser.cur().get_kind() != TokenKind::EOF && parser.cur().get_kind() != TokenKind::END {
         contents.push(
             match parser.cur().get_kind() {
-                EXIT => {
-                    parse_exit(parser)
+                TokenKind::EXIT => {
+                    let res = parse_exit(parser);
+                    if res.is_err() {
+                        return Err(format!("Error Parsing Exit Statement `{}`", res.err().unwrap()));
+                    } else {
+                        res.ok().unwrap()
+                    }
+                }
+                _ => {
+                    return Err(format!("Unexpected Token `{}`", parser.cur().get_val()))
                 }
             }
         );
@@ -55,12 +63,12 @@ fn parse_scope(parser: &mut ParserData) -> ASTNode {
         parser.next();
     }
     
-    ASTNode::new_scope(contents)
+    Ok(ASTNode::new_scope(contents))
 }
 
-fn parse_exit(parser: &mut ParserData) -> ASTNode {
+fn parse_exit(parser: &mut ParserData) -> Result<ASTNode, String> {
     let exit_tok = parser.cur();
     parser.next();
 
-    ASTNode::new_exit(exit_tok, ptr::null())
+    Ok(ASTNode::new_exit(exit_tok, ptr::null()))
 }
