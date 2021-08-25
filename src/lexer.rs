@@ -11,10 +11,20 @@ pub enum TokenKind {
     RPAREN,
     
     COMMA,
+    PIPE,
+    GT,
+    LT,
+    GE,
+    LE,
+    EQ,
 
     DEF,
     END,
     IF,
+    AND,
+    OR,
+    IN,
+    FOR,
     ELSE,
     ALIAS,
     EXIT,
@@ -39,6 +49,10 @@ lazy_static! {
         map.insert("alias".to_string(), TokenKind::ALIAS);
         map.insert("exit".to_string(), TokenKind::EXIT);
         map.insert("help".to_string(), TokenKind::HELP);
+        map.insert("and".to_string(), TokenKind::AND);
+        map.insert("or".to_string(), TokenKind::OR);
+        map.insert("in".to_string(), TokenKind::IN);
+        map.insert("for".to_string(), TokenKind::FOR);
         map
     };
 }
@@ -58,6 +72,13 @@ impl Token {
             kind,
             val,
         }   
+    }
+
+    pub fn default() -> Self {
+        Self {
+            kind: TokenKind::ID,
+            val: String::default()
+        }
     }
 
     pub fn get_kind(&self) -> TokenKind {
@@ -97,10 +118,30 @@ impl Token {
                 Ok(Token::new(TokenKind::VAR, input[0..len].to_string()))
             }
 
+            '\0' => { Ok(Token::new(TokenKind::EOF, "EOF".to_string())) }
             '(' => { Ok(Token::new(TokenKind::LPAREN, '('.to_string())) }
             ')' => { Ok(Token::new(TokenKind::RPAREN, ')'.to_string())) }
             ',' => { Ok(Token::new(TokenKind::COMMA, ','.to_string())) }
-            '\0' => { Ok(Token::new(TokenKind::EOF, "EOF".to_string())) }
+            '|' => { Ok(Token::new(TokenKind::COMMA, ','.to_string())) }
+            '=' => { Ok(Token::new(TokenKind::EQ, '='.to_string())) }
+            '>' => { Ok({
+                    c = next!(chars);
+                    if c == '=' {
+                        Token::new(TokenKind::GE, ">=".to_string())
+                    } else {
+                        Token::new(TokenKind::GT, '>'.to_string())
+                    }
+                }) 
+            }
+            '<' => { Ok({
+                    c = next!(chars);
+                    if c == '=' {
+                        Token::new(TokenKind::LE, "<=".to_string())
+                    } else {
+                        Token::new(TokenKind::LT, '<'.to_string())
+                    }
+                })
+            }
 
             _ => {
                 let mut len = 0;

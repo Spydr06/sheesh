@@ -1,4 +1,5 @@
-use crate::lex;
+use crate::lexer;
+use crate::parser;
 
 pub fn run_input(input: &mut String) -> i32 {
     let exit_code = 0;
@@ -8,10 +9,11 @@ pub fn run_input(input: &mut String) -> i32 {
     }
 
     input.push('\0');
-
-    println!("Executing {:?}", input);
-    let tokens = lex::lex_tokens(input.to_string()).expect("Error lexing tokens: ");
+    let tokens = lexer::lex_tokens(input.to_string()).expect("Error lexing tokens: ");
     println!("Tokens: {:?}", tokens);
+
+    let ast = parser::parse_ast(tokens);
+    println!("AST: {:?}", ast);
 
     exit_code
 }

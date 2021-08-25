@@ -5,8 +5,8 @@ use std::{
 
 mod io;
 mod shell;
-mod lex;
-mod parse;
+mod lexer;
+mod parser;
 mod eval;
 mod vars;
 mod ast;
