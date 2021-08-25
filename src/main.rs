@@ -15,6 +15,8 @@ fn main() {
     let mut args: Vec<String> = env::args().collect();
     args.remove(0);
 
+    disable_ctrlc();
+
     let mut scripts = Vec::<String>::new();
     for arg in args {
         if arg.starts_with("-") || arg.starts_with("--") {
@@ -73,4 +75,8 @@ fn version() {
     println!("sheesh version: {}", env!("CARGO_PKG_VERSION"));
 
     process::exit(0);
+}
+
+fn disable_ctrlc() {
+    ctrlc::set_handler(move || { /* do nothing here */}).expect("Error setting Ctrl-C handler");
 }
