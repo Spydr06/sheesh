@@ -1,12 +1,11 @@
-use std::fmt;
-use crate::lexer;
-
 #[derive(Debug, Clone)]
 pub enum NodeKind {
     CALL,
     VAR,
+    STRING,
     ROOT,
     FN,
+    ALIAS,
     NOOP,
 }
 
@@ -16,17 +15,6 @@ pub struct Node {
     name: String,
     nodes: Vec<Node>,
     args: Vec<Node>
-}
-
-impl fmt::Display for Node {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Node: {{");
-        if !self.nodes.is_empty() {
-            write!(f, "nodes: {:?}", self.nodes);
-        }
-
-        write!(f, "}}")
-    }
 }
 
 impl Node {

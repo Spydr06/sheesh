@@ -24,9 +24,9 @@ pub enum SyntaxError {
 impl fmt::Display for SyntaxError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::UnexpectedToken(tok) => write!(f, "Unexpected token `{}`", tok.get_val()),
-            Self::UnexpectedTokenWant(tok, want) => write!(f, "Unexpected token `{}`, want `{}`", tok.get_val(), want),
-            Self::UnexpectedEndOfFile(want) => write!(f, "Unexpected end of file, want `{}`", want)
+            Self::UnexpectedToken(tok) => write!(f, "Unexpected token `{}'", tok.get_val()),
+            Self::UnexpectedTokenWant(tok, want) => write!(f, "Unexpected token `{}', want `{}'", tok.get_val(), want),
+            Self::UnexpectedEndOfFile(want) => write!(f, "Unexpected end of file, want `{}'", want)
         }
     }
 }
@@ -64,17 +64,61 @@ macro_rules! next_is {
     };
 }
 
+pub fn parse(tokens: Vec<Token>) -> Result<Node, SyntaxError> {
+    let mut ast = Node::new(NodeKind::ROOT);
+    let mut i = 0usize;
+
+    while let Some(tok) = tokens.get(i) {
+        match tok.get_kind() {
+            EOF => {
+                return Ok(ast)
+            },
+            _ => {
+                let stmt = parse_stmt(&tokens, &mut i);
+                if stmt.is_err() {
+                    return stmt;
+                }
+                ast.add_node(stmt.unwrap());
+            }
+        }
+        i += 1;
+    };
+
+    Ok(ast)
+}
+
+fn parse_stmt(tokens: &Vec<Token>, i: &mut usize) -> Result<Node, SyntaxError> {
+    match tokens.get(*i).unwrap().get_kind() {
+        SEMICOLON => Ok(Node::new(NodeKind::NOOP)),
+        DEF => parse_fn(tokens, i),
+        ALIAS => parse_alias(tokens, i),
+        _ => parse_expr(tokens, i)
+    }
+}
+
 fn parse_expr(tokens: &Vec<Token>, i: &mut usize) -> Result<Node, SyntaxError> {
     let tok = tokens.get(*i).unwrap();
     match tok.get_kind() {
         VAR => {
             let mut node = Node::new(NodeKind::VAR);
-            node.set_name(tok.get_val());
+            node.set_name(tok.get_val().replace("\\", ""));
             Ok(node)
         },
         ID => {
             let mut node = Node::new(NodeKind::CALL);
-            node.set_name(tok.get_val());
+            node.set_name(tok.get_val().replace("\\", ""));
+            Ok(node)
+        },
+        STRING => {
+            let mut node = Node::new(NodeKind::STRING);
+            
+            node.set_name({
+                let mut value = tok.get_val(); // remove the first and last character (the string quotes)
+                value.remove(0);
+                value.remove(value.len() - 1);
+                value
+            });
+
             Ok(node)
         },
         _ => Err(SyntaxError::UnexpectedToken(tok.clone()))
@@ -83,8 +127,8 @@ fn parse_expr(tokens: &Vec<Token>, i: &mut usize) -> Result<Node, SyntaxError> {
 
 fn parse_fn(tokens: &Vec<Token>, i: &mut usize) -> Result<Node, SyntaxError> {
     let mut fn_def = Node::new(NodeKind::FN);
-    let mut tok = next_tok!(i, tokens, ID);
-    fn_def.set_name(tok.get_val());
+    let tok = next_tok!(i, tokens, ID);
+    fn_def.set_name(tok.get_val().replace("\\", ""));
 
     // parse the function arguments
     if next_is!(i, tokens, LPAREN) {
@@ -111,11 +155,7 @@ fn parse_fn(tokens: &Vec<Token>, i: &mut usize) -> Result<Node, SyntaxError> {
         *i += 1;
     }
 
-    while let Some(mut tok) = tokens.get(*i) {
-        if next_is!(i, tokens, END) {
-            break;
-        }
-
+    while tokens.get(*i).is_some() && !next_is!(i, tokens, END) {
         let stmt = parse_stmt(tokens, i);
         if stmt.is_err() {
             return stmt;
@@ -129,34 +169,19 @@ fn parse_fn(tokens: &Vec<Token>, i: &mut usize) -> Result<Node, SyntaxError> {
     Ok(fn_def)
 }
 
-fn parse_stmt(tokens: &Vec<Token>, i: &mut usize) -> Result<Node, SyntaxError> {
-    let mut tok = tokens.get(*i).unwrap();
-    match tok.get_kind() {
-        SEMICOLON => Ok(Node::new(NodeKind::NOOP)),
-        DEF => parse_fn(tokens, i),
-        _ => parse_expr(tokens, i)
+fn parse_alias(tokens: &Vec<Token>, i: &mut usize) -> Result<Node, SyntaxError> {
+    let mut alias = Node::new(NodeKind::ALIAS);
+    alias.set_name(next_tok!(i, tokens, ID).get_val().replace("\\", ""));
+    next_tok!(i, tokens, EQUALS);
+    *i += 1;
+    let value = parse_expr(tokens, i);
+    if value.is_err() {
+        return value
     }
-}
 
-pub fn parse(tokens: Vec<Token>) -> Result<Node, SyntaxError> {
-    let mut ast = Node::new(NodeKind::ROOT);
-    let mut i = 0usize;
+    alias.add_node(value.unwrap());
 
-    while let Some(tok) = tokens.get(i) {
-        match tok.get_kind() {
-            EOF => {
-                return Ok(ast)
-            },
-            _ => {
-                let stmt = parse_stmt(&tokens, &mut i);
-                if stmt.is_err() {
-                    return stmt;
-                }
-                ast.add_node(stmt.unwrap());
-            }
-        }
-        i += 1;
-    };
+    *i += 1;
 
-    Ok(ast)
+    Ok(alias)
 }

@@ -190,7 +190,7 @@ impl Token {
                     c = next!(chars);
                 }
 
-                Ok(tok!(*KEYWORDS.get(&input[0..len]).unwrap_or( &TokenKind::ID), input[0..len]))
+                Ok(tok!(*KEYWORDS.get(&input[0..len]).unwrap_or(&TokenKind::ID), input[0..len]))
             }
         }
     }
@@ -220,8 +220,7 @@ pub fn lex_tokens(input: String) -> Result<Vec<Token>, &'static str> {
             return Err("er")
         }
 
-        let tok = tok_res.unwrap();
-
+        let tok = tok_res.unwrap(); 
         c += tok.get_val().len();
         tokens.push(tok.clone());
 
