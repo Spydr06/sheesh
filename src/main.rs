@@ -7,6 +7,7 @@ mod io;
 mod shell;
 mod lexer;
 mod ast;
+mod parser;
 
 fn main() {
     let mut args: Vec<String> = env::args().collect();

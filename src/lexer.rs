@@ -1,4 +1,7 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    fmt
+};
 use lazy_static::lazy_static;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -11,8 +14,11 @@ pub enum TokenKind {
     // Symbols
     PIPE,      // |
     GT,        // >
+    COMMA,     // ,
     SEMICOLON, // ;
     EQUALS,    // =
+    LPAREN,    // (   
+    RPAREN,    // )
 
     // Keywords
     DEF,
@@ -30,6 +36,36 @@ pub enum TokenKind {
     // Escape characters
     NEWLN,
     EOF
+}
+
+impl fmt::Display for TokenKind {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", match self {
+            Self::ID => "identifier",
+            Self::VAR => "variable",
+            Self::STRING => "string",
+            Self::PIPE => "|",
+            Self::GT => ">",
+            Self::COMMA => ",",
+            Self::SEMICOLON => ";",
+            Self::EQUALS => "=",
+            Self::DEF => "def",
+            Self::END => "end",
+            Self::IF => "if",
+            Self::AND => "and",
+            Self::OR => "or",
+            Self::IN => "in",
+            Self::FOR => "for",
+            Self::ELSE => "else",
+            Self::ALIAS => "alias",
+            Self::EXIT => "exit",
+            Self::HELP => "help",
+            Self::NEWLN => "newline",
+            Self::EOF => "end of file",
+            Self::LPAREN => "(",
+            Self::RPAREN => ")",
+        })
+    }
 }
 
 lazy_static! {
@@ -76,6 +112,7 @@ macro_rules! tok {
 }
 
 const WHTIESPACES: &str = " \t\r\n";
+const OPERATORS: &str = ";,()";
 
 impl Token {
     pub fn new(kind: TokenKind, val: String) -> Self {
@@ -123,10 +160,13 @@ impl Token {
                 Ok(tok!(VAR, input[0..len]))
             }
 
-            '>' => { Ok(tok!(GT, ">")) }
-            ';' => { Ok(tok!(SEMICOLON, ";")) }
-            '|' => { Ok(tok!(PIPE, "|")) }
-            '=' => { Ok(tok!(EQUALS, "=")) }
+            '>' => Ok(tok!(GT, ">")),
+            ',' => Ok(tok!(COMMA, ",")),
+            ';' => Ok(tok!(SEMICOLON, ";")),
+            '|' => Ok(tok!(PIPE, "|")),
+            '=' => Ok(tok!(EQUALS, "=")),
+            '(' => Ok(tok!(LPAREN, "(")),
+            ')' => Ok(tok!(RPAREN, ")")),
             
             '\n' => { Ok(tok!(NEWLN, "newline")) }
             '\0' => { Ok(tok!(EOF, "end of file")) }
@@ -142,7 +182,7 @@ impl Token {
                             len += 1;
                         }
                     }
-                    if WHTIESPACES.contains(c) {
+                    if WHTIESPACES.contains(c) || OPERATORS.contains(c) {
                         break;
                     }
 
