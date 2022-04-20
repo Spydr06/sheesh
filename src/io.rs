@@ -8,9 +8,12 @@ use std::{
     },
 };
 
-use crate::shell;
+use crate::{
+    shell,
+    environment::Environment
+};
 
-pub fn repl(prompt: String) {
+pub fn repl(prompt: String, environment: &mut Environment) {
     loop {
         // print the prompt
         print!("{}", prompt);
@@ -21,7 +24,7 @@ pub fn repl(prompt: String) {
         io::stdin().read_line(&mut input).unwrap();
 
         // run the implemented prompt
-        shell::run_input(&mut input);
+        shell::run_input(&mut input, environment);
     }
 }
 

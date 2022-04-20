@@ -3,11 +3,15 @@ use std::{
     env
 };
 
+use environment::{Variable, Environment};
+
 mod io;
 mod shell;
 mod lexer;
 mod ast;
 mod parser;
+mod evaluator;
+mod environment;
 
 fn main() {
     let mut args: Vec<String> = env::args().collect();
@@ -39,15 +43,25 @@ fn main() {
         }
     }
 
+    let mut environment = Environment::new();
+    for var in env::vars() {
+        let mut value = ast::Node::new(ast::NodeKind::ID);
+        value.set_name(var.1);
+        environment.add(Variable::Export { 
+            name: var.0, 
+            value
+        });
+    }
+
     if scripts.len() == 0 {
         // enter interactive mode (REPL)
-        io::repl(">>> ".to_string());
+        io::repl(">>> ".to_string(), &mut environment);
         process::exit(0);
     }
      
     // execute the specified scripts
     for path in scripts {
-        let exit_code = shell::run_input(&mut io::read_file(&*path));
+        let exit_code = shell::run_input(&mut io::read_file(&*path), &mut environment);
         println!("\"{}\" terminated with exit code {}", path, exit_code);
         if exit_code != 0 {
             process::exit(exit_code);

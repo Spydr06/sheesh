@@ -2,6 +2,7 @@
 pub enum NodeKind {
     CALL,
     VAR,
+    ID,
     STRING,
     ROOT,
     FN,
@@ -35,6 +36,10 @@ impl Node {
     pub fn set_name(&mut self, name: String) -> &Self {
         self.name = name;
         self
+    }
+
+    pub fn get_name(&self) -> &String {
+        &self.name
     }
 
     pub fn add_arg(&mut self, node: Node) -> &Self {

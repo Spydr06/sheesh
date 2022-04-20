@@ -1,10 +1,12 @@
 use crate::{
     lexer,
-    parser
+    parser,
+    environment::Environment,
+    evaluator::evaluate
 };
 
 // the default routine to execute shell commands
-pub fn run_input(input: &mut String) -> i32 {
+pub fn run_input(input: &mut String, environment: &mut Environment) -> i32 {
     if input.trim().is_empty() {
         return 0;
     }
@@ -18,7 +20,14 @@ pub fn run_input(input: &mut String) -> i32 {
         println!("Error: {}", result.unwrap_err());
         return 1;
     }
-    println!("AST: {:#?}", result.unwrap());
+    let ast = result.unwrap();
+    println!("AST: {:#?}", ast);
 
-    0
+    let result = evaluate(ast, environment);
+    if result.is_err() {
+        println!("Error: {}", result.unwrap_err());
+        return 1;
+    }
+
+    result.unwrap()
 }

@@ -99,6 +99,13 @@ fn parse_stmt(tokens: &Vec<Token>, i: &mut usize) -> Result<Node, SyntaxError> {
 fn parse_expr(tokens: &Vec<Token>, i: &mut usize) -> Result<Node, SyntaxError> {
     let tok = tokens.get(*i).unwrap();
     match tok.get_kind() {
+        LPAREN => {
+            *i += 1;
+            let expr = parse_expr(tokens, i);
+            next_tok!(i, tokens, RPAREN);
+            *i += 1;
+            expr
+        }
         VAR => {
             let mut node = Node::new(NodeKind::VAR);
             node.set_name(tok.get_val().replace("\\", ""));
