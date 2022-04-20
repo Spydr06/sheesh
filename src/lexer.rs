@@ -1,23 +1,20 @@
-use std::{collections::HashMap, process::exit};
+use std::collections::HashMap;
 use lazy_static::lazy_static;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum TokenKind {
-    ID,
-    VAR,
-    STRING,
-
-    LPAREN,
-    RPAREN,
+    // Primitives
+    ID,     // identifier
+    VAR,    // $variable
+    STRING, // "strings"
     
-    COMMA,
-    PIPE,
-    GT,
-    LT,
-    GE,
-    LE,
-    EQ,
+    // Symbols
+    PIPE,      // |
+    GT,        // >
+    SEMICOLON, // ;
+    EQUALS,    // =
 
+    // Keywords
     DEF,
     END,
     IF,
@@ -30,13 +27,9 @@ pub enum TokenKind {
     EXIT,
     HELP,
 
+    // Escape characters
+    NEWLN,
     EOF
-}
-
-#[derive(Clone, Debug)]
-pub struct Token {
-    kind: TokenKind,
-    val: String,
 }
 
 lazy_static! {
@@ -57,14 +50,32 @@ lazy_static! {
     };
 }
 
+
+#[derive(Clone, Debug)]
+pub struct Token {
+    kind: TokenKind,
+    val: String,
+}
+
 #[macro_export]
 macro_rules! next {
-    ( $iter:expr ) => {
-        {
-           $iter.next().unwrap_or('\0')
-        }
+    ($iter:expr) => {
+        $iter.next().unwrap_or('\0')
     };
 }
+
+#[macro_export]
+macro_rules! tok {
+    ($kind:ident, $val:expr) => {
+        Token::new(TokenKind::$kind, $val.to_string())
+    };
+
+    ($kind:expr, $val:expr) => {
+        Token::new($kind, $val.to_string())
+    };
+}
+
+const WHTIESPACES: &str = " \t\r\n";
 
 impl Token {
     pub fn new(kind: TokenKind, val: String) -> Self {
@@ -72,13 +83,6 @@ impl Token {
             kind,
             val,
         }   
-    }
-
-    pub fn default() -> Self {
-        Self {
-            kind: TokenKind::ID,
-            val: String::default()
-        }
     }
 
     pub fn get_kind(&self) -> TokenKind {
@@ -92,6 +96,7 @@ impl Token {
     pub fn get_token(input: String) -> Result<Token, String> {
         let mut chars = input.chars();
         let mut c = next!(chars);
+
         match c {
             '"' => {
                 let mut len = 2;
@@ -104,7 +109,7 @@ impl Token {
                     c = next!(chars);
                 }
 
-                Ok(Token::new(TokenKind::STRING, input[0..len].to_string()))
+                Ok(tok!(STRING, input[0..len]))
             }
 
             '$' => {
@@ -115,33 +120,16 @@ impl Token {
                     c = next!(chars);
                 }
 
-                Ok(Token::new(TokenKind::VAR, input[0..len].to_string()))
+                Ok(tok!(VAR, input[0..len]))
             }
 
-            '\0' => { Ok(Token::new(TokenKind::EOF, "EOF".to_string())) }
-            '(' => { Ok(Token::new(TokenKind::LPAREN, '('.to_string())) }
-            ')' => { Ok(Token::new(TokenKind::RPAREN, ')'.to_string())) }
-            ',' => { Ok(Token::new(TokenKind::COMMA, ','.to_string())) }
-            '|' => { Ok(Token::new(TokenKind::PIPE, '|'.to_string())) }
-            '=' => { Ok(Token::new(TokenKind::EQ, '='.to_string())) }
-            '>' => { Ok({
-                    c = next!(chars);
-                    if c == '=' {
-                        Token::new(TokenKind::GE, ">=".to_string())
-                    } else {
-                        Token::new(TokenKind::GT, '>'.to_string())
-                    }
-                }) 
-            }
-            '<' => { Ok({
-                    c = next!(chars);
-                    if c == '=' {
-                        Token::new(TokenKind::LE, "<=".to_string())
-                    } else {
-                        Token::new(TokenKind::LT, '<'.to_string())
-                    }
-                })
-            }
+            '>' => { Ok(tok!(GT, ">")) }
+            ';' => { Ok(tok!(SEMICOLON, ";")) }
+            '|' => { Ok(tok!(PIPE, "|")) }
+            '=' => { Ok(tok!(EQUALS, "=")) }
+            
+            '\n' => { Ok(tok!(NEWLN, "newline")) }
+            '\0' => { Ok(tok!(EOF, "end of file")) }
 
             _ => {
                 let mut len = 0;
@@ -154,7 +142,7 @@ impl Token {
                             len += 1;
                         }
                     }
-                    if c.is_whitespace() {
+                    if WHTIESPACES.contains(c) {
                         break;
                     }
 
@@ -162,8 +150,7 @@ impl Token {
                     c = next!(chars);
                 }
 
-                let val = input[0..len].to_string();
-                Ok(Token::new(*KEYWORDS.get(&val).unwrap_or( &TokenKind::ID), val))
+                Ok(tok!(*KEYWORDS.get(&input[0..len]).unwrap_or( &TokenKind::ID), input[0..len]))
             }
         }
     }
@@ -171,16 +158,16 @@ impl Token {
 
 fn skip_whitespace(input: String) -> usize {
     let mut iter = input.chars();
-
     let mut i = 0;
-    while iter.next().unwrap().is_whitespace() {
+
+    while WHTIESPACES.contains(iter.next().unwrap()) {
         i += 1;
     }
 
     i
 }
 
-pub fn lex_tokens(input: String) -> Result<Vec<Token>, String> {
+pub fn lex_tokens(input: String) -> Result<Vec<Token>, &'static str> {
     let mut tokens = Vec::<Token>::new();
     let mut c = 0;
 
@@ -190,7 +177,7 @@ pub fn lex_tokens(input: String) -> Result<Vec<Token>, String> {
         let tok_res = Token::get_token(input[c..].to_string());
         if tok_res.is_err() {
             eprintln!("{}", tok_res.as_ref().unwrap_err());
-            exit(1)
+            return Err("er")
         }
 
         let tok = tok_res.unwrap();
@@ -204,4 +191,4 @@ pub fn lex_tokens(input: String) -> Result<Vec<Token>, String> {
     }
 
     Ok(tokens)
-}
+} 

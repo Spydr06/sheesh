@@ -6,16 +6,13 @@ use std::{
 mod io;
 mod shell;
 mod lexer;
-mod parser;
-mod eval;
-mod vars;
 mod ast;
 
 fn main() {
     let mut args: Vec<String> = env::args().collect();
     args.remove(0);
 
-    disable_ctrlc();
+   // disable_ctrlc();
 
     let mut scripts = Vec::<String>::new();
     for arg in args {
