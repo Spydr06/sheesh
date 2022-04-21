@@ -1,11 +1,10 @@
 use crate::{ast, environment::{Environment, Variable}};
-use std::{fmt, io::Write, os::unix::prelude::FromRawFd};
+use std::fmt;
 
 #[derive(Debug)]
 pub enum RuntimeError {
     UnknownAction(ast::NodeKind),
     CommandNotFound(String),
-    UnsupportedPlatform(&'static str),
 }
 
 impl fmt::Display for RuntimeError {
@@ -13,7 +12,6 @@ impl fmt::Display for RuntimeError {
         match self {
             Self::UnknownAction(kind) => write!(f, "Unknown action `{:?}'", kind),
             Self::CommandNotFound(cmd) => write!(f, "sheesh: command not found `{}'", cmd),
-            Self::UnsupportedPlatform(platform) => write!(f, "unsupported platform `{}'", platform)
         }
     }
 }
@@ -23,23 +21,37 @@ pub fn evaluate(ast: &ast::Node, env: &mut Environment) -> Result<(i32, String),
 
     match ast.get_kind() {
         ROOT => {
+            let mut last_val = (0, String::new());
             for stmt in ast.get_nodes() {
                 let result = evaluate(stmt, env);
                 if result.is_err() {
                     return result
                 }
+                last_val = result.unwrap();
             };
-            Ok((0, String::new()))
+            Ok(last_val)
         }
 
         NOOP => Ok((0, String::new())),
 
         ALIAS => {
             let value = ast.get_nodes().get(0).unwrap();
-            env.add(Variable::Alias {
-                name: ast.get_name().to_string(),
+            let name = ast.get_name();
+            env.add(name.to_string(), Variable::Alias {
+                name: name.to_string(),
                 value: value.clone()
             });
+
+            Ok((0, String::new()))
+        }
+
+        VAR => {
+            if let Some(var) = env.get(ast.get_name()) {
+                return match var {
+                    Variable::Export { value, .. } => Ok((0, value)),
+                    Variable::Alias { value, .. } => evaluate(&value, env)
+                };
+            }
 
             Ok((0, String::new()))
         }

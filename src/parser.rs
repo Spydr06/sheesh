@@ -111,7 +111,7 @@ fn parse_expr(tokens: &Vec<Token>, i: &mut usize) -> Result<Node, SyntaxError> {
         }
         VAR => {
             let mut node = Node::new(NodeKind::VAR);
-            node.set_name(tok.get_val().replace("\\", ""));
+            node.set_name(tok.get_val().replace("\\", "").replace("$", ""));
             Ok(node)
         },
         ID => {

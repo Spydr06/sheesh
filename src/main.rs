@@ -45,7 +45,8 @@ fn main() {
 
     let mut environment = Environment::new();
     for var in env::vars() {
-        environment.add(Variable::Export { 
+        //println!("{}: `{}'", var.0, var.1);
+        environment.add(var.0.clone(), Variable::Export { 
             name: var.0, 
             value: var.1,
         });
@@ -56,13 +57,14 @@ fn main() {
         io::repl(">>> ".to_string(), &mut environment);
         process::exit(0);
     }
-     
-    // execute the specified scripts
-    for path in scripts {
-        let exit_code = shell::run_input(&mut io::read_file(&*path), &mut environment);
-        println!("\"{}\" terminated with exit code {}", path, exit_code);
-        if exit_code != 0 {
-            process::exit(exit_code);
+    else {
+        // execute the specified scripts
+        for path in scripts {
+            let exit_code = shell::run_input(&mut io::read_file(&*path), &mut environment);
+            println!("\"{}\" terminated with exit code {}", path, exit_code);
+            if exit_code != 0 {
+                process::exit(exit_code);
+            }
         }
     }
 }
