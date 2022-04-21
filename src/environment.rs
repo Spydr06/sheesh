@@ -1,7 +1,9 @@
+use lazy_static::__Deref;
+
 use crate::ast;
 
 pub enum Variable {
-    Export {name: String, value: ast::Node},
+    Export {name: String, value: String},
     Alias {name: String, value: ast::Node},
 }
 
@@ -13,10 +15,10 @@ impl Variable {
         }
     }
 
-    pub fn get_value(&mut self) -> &ast::Node {
+    pub fn get_value(self) -> Option<ast::Node> {
         match self {
-            Self::Export{value, ..} => value,
-            Self::Alias{value, ..} => value
+            Self::Export{value, ..} => None,
+            Self::Alias{value, ..} => Some(value)
         }
     }
 }

@@ -1,4 +1,4 @@
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum NodeKind {
     CALL,
     VAR,
@@ -10,12 +10,13 @@ pub enum NodeKind {
     NOOP,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Node {
     kind: NodeKind,
     name: String,
     nodes: Vec<Node>,
-    args: Vec<Node>
+    args: Vec<Node>,
+    print: bool,
 }
 
 impl Node {
@@ -24,13 +25,22 @@ impl Node {
             kind,
             name: "".to_string(),
             nodes: Vec::<Node>::new(),
-            args: Vec::<Node>::new()
+            args: Vec::<Node>::new(),
+            print: false
         }
+    }
+
+    pub fn get_kind(&self) -> NodeKind {
+        self.kind.clone()
     }
 
     pub fn add_node(&mut self, node: Node) -> &Self {
         self.nodes.push(node);
         self
+    }
+
+    pub fn get_nodes(&self) -> &Vec<Node> {
+        &self.nodes
     }
 
     pub fn set_name(&mut self, name: String) -> &Self {
@@ -45,5 +55,13 @@ impl Node {
     pub fn add_arg(&mut self, node: Node) -> &Self {
         self.args.push(node);
         self
+    }
+
+    pub fn get_args(&self) -> &Vec<Node> {
+        &self.args
+    }
+
+    pub fn enable_print(&mut self) {
+        self.print = true;
     }
 }

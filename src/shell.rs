@@ -21,13 +21,13 @@ pub fn run_input(input: &mut String, environment: &mut Environment) -> i32 {
         return 1;
     }
     let ast = result.unwrap();
-    println!("AST: {:#?}", ast);
+    //println!("AST: {:#?}", ast);
 
-    let result = evaluate(ast, environment);
+    let result = evaluate(&ast, environment);
     if result.is_err() {
         println!("Error: {}", result.unwrap_err());
         return 1;
     }
 
-    result.unwrap()
+    result.unwrap().0
 }

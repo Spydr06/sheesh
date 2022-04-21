@@ -92,7 +92,10 @@ fn parse_stmt(tokens: &Vec<Token>, i: &mut usize) -> Result<Node, SyntaxError> {
         SEMICOLON => Ok(Node::new(NodeKind::NOOP)),
         DEF => parse_fn(tokens, i),
         ALIAS => parse_alias(tokens, i),
-        _ => parse_expr(tokens, i)
+        _ => {
+            let expr = parse_expr(tokens, i);
+            expr
+        }
     }
 }
 

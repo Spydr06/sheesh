@@ -45,11 +45,9 @@ fn main() {
 
     let mut environment = Environment::new();
     for var in env::vars() {
-        let mut value = ast::Node::new(ast::NodeKind::ID);
-        value.set_name(var.1);
         environment.add(Variable::Export { 
             name: var.0, 
-            value
+            value: var.1,
         });
     }
 
