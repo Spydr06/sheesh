@@ -1,10 +1,18 @@
-use crate::{ast, environment::{Environment, Variable}};
+use crate::{
+    ast, 
+    environment::{
+        Environment, 
+        Variable, 
+        Callable
+    }
+};
 use std::fmt;
 
 #[derive(Debug)]
 pub enum RuntimeError {
     UnknownAction(ast::NodeKind),
     CommandNotFound(String),
+    Unimplemented(&'static str),
 }
 
 impl fmt::Display for RuntimeError {
@@ -12,6 +20,7 @@ impl fmt::Display for RuntimeError {
         match self {
             Self::UnknownAction(kind) => write!(f, "Unknown action `{:?}'", kind),
             Self::CommandNotFound(cmd) => write!(f, "sheesh: command not found `{}'", cmd),
+            Self::Unimplemented(desc) => write!(f, "Unimplemented: `{}'", desc)
         }
     }
 }
@@ -37,7 +46,7 @@ pub fn evaluate(ast: &ast::Node, env: &mut Environment) -> Result<(i32, String),
         ALIAS => {
             let value = ast.get_nodes().get(0).unwrap();
             let name = ast.get_name();
-            env.add(name.to_string(), Variable::Alias {
+            env.add_callable(name.to_string(), Callable::Alias {
                 name: name.to_string(),
                 value: value.clone()
             });
@@ -46,10 +55,9 @@ pub fn evaluate(ast: &ast::Node, env: &mut Environment) -> Result<(i32, String),
         }
 
         VAR => {
-            if let Some(var) = env.get(ast.get_name()) {
+            if let Some(var) = env.get_var(ast.get_name()) {
                 return match var {
                     Variable::Export { value, .. } => Ok((0, value)),
-                    Variable::Alias { value, .. } => evaluate(&value, env)
                 };
             }
 
@@ -67,12 +75,13 @@ pub fn evaluate(ast: &ast::Node, env: &mut Environment) -> Result<(i32, String),
                 args.push(result.unwrap().1);
             }
 
-            let result = subprocess(ast.get_name().to_string(), args);
-            if result.is_err() {
-                return Err(result.unwrap_err());
+            let call_name = ast.get_name().to_string();
+            if let Some(callable) = env.get_callable(&call_name) {
+                call(callable, args, env)
             }
-
-            Ok(result.unwrap())
+            else {
+                subprocess(call_name, args)
+            }
         }
 
         _ => {
@@ -107,4 +116,15 @@ fn subprocess(name: String, args: Vec<String>) -> Result<(i32, String), RuntimeE
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr)
     )))
+}
+
+fn call(callable: Callable, args: Vec<String>, env: &mut Environment) -> Result<(i32, String), RuntimeError> {
+    match callable {
+        Callable::Alias{value, ..} => evaluate(&value, env),
+        Callable::Function {..} => Err(RuntimeError::Unimplemented("calling functions")),
+        Callable::Builtin {func, ..} => Ok((
+            func(args, env), 
+            String::new()
+        ))
+    }
 }

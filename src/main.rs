@@ -12,6 +12,7 @@ mod ast;
 mod parser;
 mod evaluator;
 mod environment;
+mod builtins;
 
 fn main() {
     let mut args: Vec<String> = env::args().collect();
@@ -46,11 +47,12 @@ fn main() {
     let mut environment = Environment::new();
     for var in env::vars() {
         //println!("{}: `{}'", var.0, var.1);
-        environment.add(var.0.clone(), Variable::Export { 
+        environment.add_var(var.0.clone(), Variable::Export { 
             name: var.0, 
             value: var.1,
         });
     }
+    builtins::register(&mut environment);
 
     if scripts.len() == 0 {
         // enter interactive mode (REPL)

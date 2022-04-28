@@ -30,7 +30,6 @@ pub enum TokenKind {
     FOR,
     ELSE,
     ALIAS,
-    EXIT,
     HELP,
 
     // Escape characters
@@ -58,7 +57,6 @@ impl fmt::Display for TokenKind {
             Self::FOR => "for",
             Self::ELSE => "else",
             Self::ALIAS => "alias",
-            Self::EXIT => "exit",
             Self::HELP => "help",
             Self::NEWLN => "newline",
             Self::EOF => "end of file",
@@ -76,7 +74,6 @@ lazy_static! {
         map.insert("if".to_string(), TokenKind::IF);
         map.insert("else".to_string(), TokenKind::ELSE);
         map.insert("alias".to_string(), TokenKind::ALIAS);
-        map.insert("exit".to_string(), TokenKind::EXIT);
         map.insert("help".to_string(), TokenKind::HELP);
         map.insert("and".to_string(), TokenKind::AND);
         map.insert("or".to_string(), TokenKind::OR);

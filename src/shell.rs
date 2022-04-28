@@ -29,7 +29,7 @@ pub fn run_input(input: &mut String, environment: &mut Environment) -> i32 {
         return 1;
     }
 
-    let (exit_code, output) = result.unwrap();
+    let (exit_code, ..) = result.unwrap();
 
     exit_code
 }

@@ -2,7 +2,6 @@
 pub enum NodeKind {
     CALL,
     VAR,
-    ID,
     STRING,
     ROOT,
     FN,
@@ -59,9 +58,5 @@ impl Node {
 
     pub fn get_args(&self) -> &Vec<Node> {
         &self.args
-    }
-
-    pub fn enable_print(&mut self) {
-        self.print = true;
     }
 }
