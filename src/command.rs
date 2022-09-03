@@ -64,6 +64,22 @@ impl Command {
         self.args.append(&mut other.args.clone());
         self
     }
+
+    pub fn is_keyword<'a>(&self, keyword: &'a str) -> bool {
+        match self.callee.clone() {
+            Value::PlainText(_, text) => {
+                if text.eq(keyword) {
+                    if self.args.len() != 0 {
+                        eprintln!("{}: too many arguments", keyword)
+                    }
+                    true
+                } else {
+                    false
+                }
+            }
+            _ => false
+        }
+    }
 }
 
 pub fn parse(tokens: Vec<Token>) -> Result<Vec<Command>, Error> {

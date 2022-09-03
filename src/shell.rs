@@ -18,6 +18,7 @@ pub enum Error {
     ReadFile(String, String),
     SyntaxError(&'static str),
     CommandNotFound(String),
+    WrongNumOfArgs(&'static str, usize, usize),
     EarlyExit(i32)
 }
 
@@ -27,6 +28,7 @@ impl fmt::Display for Error {
             Self::ReadFile(path, err) => write!(f, "Error reading file \"{}\": {}", path, err),
             Self::SyntaxError(err) => write!(f, "Syntax error: {}", err),
             Self::CommandNotFound(exec) => write!(f, "Command not found: {}", exec),
+            Self::WrongNumOfArgs(exec, expected, received) => write!(f, "{}: expect {} arguments, got {}", exec, expected, received),
             Self::EarlyExit(code) => write!(f, "Process exited with code {}.", code)
         }
     }

@@ -1,1 +1,3 @@
-alias ls = ls -al
+if ls
+    echo "hi"
+end

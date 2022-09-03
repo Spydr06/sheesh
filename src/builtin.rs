@@ -23,6 +23,7 @@ pub static BUILTINS: phf::Map<&'static str, EvalFn> = phf_map! {
     "export"  => Command::eval_export,
     "require" => Command::eval_require,
     "cd"      => Command::eval_cd,
+    "if"      => Command::eval_if,
 };
 
 impl Command {
@@ -118,6 +119,71 @@ impl Command {
                 eprintln!("cd: too many arguments");
                 Ok(2)
             }
+        }
+    }
+
+    fn eval_if(&self, commands: &mut Iter<Command>, env: &mut Environment) -> Result<i32, Error> {
+        if self.args.len() == 0 {
+            return Err(Error::WrongNumOfArgs("if", self.args.len(), 1usize));
+        }
+
+        let mut has_else_block = false;
+        let if_block = parse_block_until(commands, |cmd| {
+            if cmd.is_keyword("else") {
+                has_else_block = true;
+                true
+            }
+            else { cmd.is_keyword("end")
+            }
+        });
+
+        if if_block.is_none() {
+            eprintln!("if: no end statement received");
+            return Ok(2);
+        }
+        
+        let else_block = if has_else_block { 
+            let res =parse_block_until(commands, |cmd| cmd.is_keyword("end"));
+            if res.is_none() {
+                eprintln!("else: no end statement received");
+                return Ok(2);
+            }
+            res.unwrap()
+        } else { 
+            Vec::new() 
+        };
+
+        let exit_code = Command::from_args(&self.args, env).unwrap().eval(commands, env)?;
+        if exit_code == 0 {
+            for command in if_block.unwrap() {
+                command.eval(commands, env)?;
+            }
+        }
+        else {
+            for command in else_block {
+                command.eval(commands, env)?;
+            }
+        }
+
+        Ok(exit_code)
+    }
+}
+
+fn parse_block_until<F>(commands: &mut Iter<Command>, mut is_end: F) -> Option<Vec<Command>> 
+    where F: FnMut(&Command) -> bool
+{
+    let mut block = Vec::new();
+
+    loop {
+        if let Some(next) = commands.next() {
+            if is_end(next) {
+                return Some(block)
+            }
+
+            block.push(next.clone())
+        }
+        else {
+            return None;
         }
     }
 }
