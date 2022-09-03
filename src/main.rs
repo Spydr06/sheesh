@@ -1,96 +1,72 @@
 use std::{
-    process,
-    env
+    process, 
+    env,
+    io::{
+        self, 
+        Write
+    }
 };
 
-use environment::{Variable, Environment};
-
-mod io;
 mod shell;
-mod lexer;
-mod ast;
-mod parser;
-mod evaluator;
+mod token;
+mod command;
+mod evaluate;
 mod environment;
-mod builtins;
+mod builtin;
+
+use shell::Error;
+use environment::Environment;
 
 fn main() {
     let mut args: Vec<String> = env::args().collect();
     args.remove(0);
 
-   // disable_ctrlc();
+    let mut env = Environment::new(env::vars());
 
-    let mut scripts = Vec::<String>::new();
-    for arg in args {
-        if arg.starts_with("-") || arg.starts_with("--") {
-            match &*arg {
-                "-h" | "--help" =>  {
-                    help();
-                }   
-                "-i" | "--info" => {
-                    info();
-                }
-                "-v" | "--version" => {
-                    version();
-                }
-                _ => {
-                    eprintln!("Unknown parameter {:?}, use \"--help\" to get help.", arg);
-                    process::exit(1);
-                }
-            }
-        }
-        else {
-            scripts.push(arg);
-        }
-    }
-
-    let mut environment = Environment::new();
-    for var in env::vars() {
-        //println!("{}: `{}'", var.0, var.1);
-        environment.add_var(var.0.clone(), Variable::Export { 
-            name: var.0, 
-            value: var.1,
-        });
-    }
-    builtins::register(&mut environment);
-
-    if scripts.len() == 0 {
-        // enter interactive mode (REPL)
-        io::repl(">>> ".to_string(), &mut environment);
-        process::exit(0);
+    if args.len() == 0 {
+        repl(&mut env);
     }
     else {
-        // execute the specified scripts
-        for path in scripts {
-            let exit_code = shell::run_input(&mut io::read_file(&*path), &mut environment);
-            println!("\"{}\" terminated with exit code {}", path, exit_code);
-            if exit_code != 0 {
-                process::exit(exit_code);
+        let mut last_exit_code = 0;
+        for arg in args {
+            let res = shell::run_script(arg, &mut env);
+            if let Err(err) = res {
+                if let Error::EarlyExit(exit_code) = err {
+                    process::exit(exit_code)
+                }
+                eprintln!("{}", err);
+            }
+            else {
+                last_exit_code = res.unwrap();
             }
         }
+        process::exit(last_exit_code);
     }
 }
 
-fn help() {
-    let help_text = "";
-    println!("{}", help_text);
+fn repl(mut env: &mut Environment) {
+    let mut last_exit_code = 0;
 
-    process::exit(0);
-}
+    loop {
+        // print the prompt
+        print!("({}) >>> ", last_exit_code);
+        io::stdout().flush().expect("error while flushing stdout");
 
-fn info() {
-    let info_text = "";
-    println!("{}", info_text);
+        // get the user input
+        let mut input: String = String::new();
+        io::stdin().read_line(&mut input).unwrap();
 
-    process::exit(0);
-}
-
-fn version() {
-    println!("sheesh version: {}", env!("CARGO_PKG_VERSION"));
-
-    process::exit(0);
-}
-
-fn disable_ctrlc() {
-    ctrlc::set_handler(move || { /* do nothing here */}).expect("Error setting Ctrl-C handler");
+        // execute the code
+        match shell::execute(input, &mut env) {
+            Err(err) => {
+                if let Error::EarlyExit(exit_code) = err {
+                    process::exit(exit_code)
+                }
+                eprintln!("{}", err);
+            }
+            Ok(exit_code) => {
+                last_exit_code = exit_code;
+            }
+        }        
+    }
 }

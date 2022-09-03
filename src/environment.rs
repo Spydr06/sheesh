@@ -1,62 +1,81 @@
-use std::collections::hash_map::HashMap;
-
-use crate::{
-    ast,
-    builtins::BuiltinFunc
+use std::{
+    collections::HashMap,
+    env::Vars
 };
 
-#[derive(Clone)]
-pub enum Variable {
-    Export {name: String, value: String},
+use crate::command::Command;
+
+pub struct Variable {
+    value: String
+}
+
+impl Variable {
+    pub fn value(&self) -> String {
+        self.value.clone()
+    }
 }
 
 #[derive(Clone)]
-pub enum Callable {
-    Alias {name: String, value: ast::Node},
-    Function {name: String, value: ast::Node, args: Vec<ast::Node>},
-    Builtin {name: String, func: BuiltinFunc}
+pub enum Identifier {
+    Alias {
+        substitute: Command
+    }
 }
 
 pub struct Environment {
-    vars: HashMap<String, Variable>,
-    callables: HashMap<String, Callable>,
-    outer: Box<Option<Environment>>
+    variables: HashMap<String, Variable>,     // $variables
+    identifiers: HashMap<String, Identifier>, // "normal" names
+    outer: Option<Box<Environment>>,
 }
 
 impl Environment {
-    pub fn new() -> Self {
-        Environment { 
-            vars: HashMap::<String, Variable>::new(),
-            callables: HashMap::<String, Callable>::new(),
-            outer: Box::<Option<Environment>>::new(None)
+    pub fn new_empty(outer: Option<Box<Environment>>) -> Self {
+        Self {
+            variables: HashMap::new(),
+            identifiers: HashMap::new(),
+            outer: outer
         }
     }
 
-    pub fn add_var(&mut self, name: String, var: Variable) {
-        self.vars.insert(name, var);
-    }
-
-    pub fn add_callable(&mut self, name: String, callable: Callable) {
-        self.callables.insert(name, callable);
-    }
-
-    pub fn get_var(&self, name: &String) -> Option<Variable> {
-        let found = self.vars.get(name);
-        if found.is_none() {
-            None
+    pub fn new(vars: Vars) -> Self {
+        let mut env = Self::new_empty(None);
+        
+        for (key, value) in vars.into_iter() {
+            env.add_var(key, value);
         }
-        else {
-            Some(found.unwrap().clone())
-        }
+        
+        env
     }
 
-    pub fn get_callable(&self, name: &String) -> Option<Callable> {
-        let found = self.callables.get(name);
-        if found.is_none() {
-            None
+    pub fn add_var(&mut self, name: String, value: String) {
+        self.variables.insert(name, Variable { value });
+    }
+
+    pub fn find_var(&self, name: &String) -> Option<&Variable> {
+        if let Some(var) = self.variables.get(name) {
+            Some(var)
+        }
+        else if let Some(outer) = &self.outer {
+            outer.find_var(name)
         }
         else {
-            Some(found.unwrap().clone())
+            None
+        }
+    }
+
+    pub fn add_ident(&mut self, name: String, obj: Identifier) {
+        self.identifiers.insert(name, obj);
+    }
+
+    pub fn find_ident(&self, name: &String) -> Option<&Identifier> {
+        if let Some(var) = self.identifiers.get(name) {
+            Some(var)
+        }
+        else if let Some(outer) = &self.outer {
+            outer.find_ident(name)
+        }
+        else {
+            None
         }
     }
 }

@@ -1,3 +1,1 @@
-def test 
-    
-end
+alias ls = ls -al
