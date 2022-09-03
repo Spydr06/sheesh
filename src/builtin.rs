@@ -10,11 +10,7 @@ use crate::{
     }
 };
 
-use std::{
-    slice::Iter,
-    env,
-    path::Path
-};
+use std::slice::Iter;
 
 use phf::phf_map;
 
@@ -104,18 +100,23 @@ impl Command {
     }
 
     fn eval_cd(&self, _commands: &mut Iter<Command>, env: &mut Environment) -> Result<i32, Error> {
-        if self.args.len() > 1 {
-            eprintln!("cd: too many arguments");
-            Ok(2)
-        }
-        else {
-            let path = self.args.get(0).unwrap().eval(env)?;
-            match env::set_current_dir(Path::new(&path)) {
-                Err(err) => {
-                    eprintln!("cd: {}", err);
-                    Ok(1)
+        match self.args.len() {
+            0 => {
+                if let Some(path) = env.find_var(&String::from("HOME")) {
+                    shell::set_directory(&path.value())
                 }
-                Ok(_) => Ok(0)
+                else {
+                    eprintln!("cd: $HOME environment variable not set.");
+                    Ok(2)
+                }
+            },
+            1 => {
+                let path = self.args.get(0).unwrap().eval(env)?;
+                shell::set_directory(&path)
+            }
+            _ => {
+                eprintln!("cd: too many arguments");
+                Ok(2)
             }
         }
     }

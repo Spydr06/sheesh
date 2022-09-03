@@ -1,7 +1,13 @@
 use crate::{
-    command::{Command, Value},
+    command::{
+        Command, 
+        Value
+    },
     shell::Error,
-    environment::{Environment, Identifier},
+    environment::{
+        Environment, 
+        Identifier
+    },
     builtin::*
 };
 
@@ -34,40 +40,43 @@ fn popen_run_process(callee: &String, args: &[String], in_background: bool) -> R
 
 impl Command {
     pub fn eval(&self, commands: &mut Iter<Command>, env: &mut Environment) -> Result<i32, Error> {
-        if let Some(eval_builtin) = BUILTINS.get(self.callee.as_str()) {
+        let evaluated = self.callee.eval(env)?;
+
+        if let Some(eval_builtin) = BUILTINS.get(&evaluated) {
             eval_builtin(self, commands, env)
         }
-        else if let Some(_) = env.find_ident(&self.callee) {
+        else if let Some(_) = env.find_ident(&evaluated) {
             self.eval_ident_call(commands, env)
         }
         else {
-            self.run_program(env) // run an external program, like ls, grep, awk, etc.
+            self.run_program(&evaluated, env) // run an external program, like ls, grep, awk, etc.
         }
     }
 
-    fn run_program(&self, env: &mut Environment) -> Result<i32, Error> {
+    fn run_program(&self, name: &String, env: &mut Environment) -> Result<i32, Error> {
         let mut args = Vec::<String>::new();
 
         for arg in &self.args {
             args.push(arg.eval(env)?)
         }
 
-        match popen_run_process(&self.callee, &args, self.is_in_background()) {
+        match popen_run_process(name, &args, self.is_in_background()) {
             Ok(exit_code) => Ok(exit_code),
             Err(pope_err) => Err(Error::CommandNotFound(pope_err.to_string()))
         }
     }
 
-    pub fn from_args(args: &[Value], env: &mut Environment) -> Result<Self, Error> {
+    pub fn from_args(args: &[Value], _env: &mut Environment) -> Result<Self, Error> {
         Ok(Self {
-            callee: args[0].eval(env)?,
+            callee: args[0].clone(),
             args: args[1..].to_vec(),
             run_in_bg: false
         })
     }
 
     fn eval_ident_call(&self, commands: &mut Iter<Command>, env: &mut Environment) -> Result<i32, Error> {
-        let id = env.find_ident(&self.callee).unwrap();
+        let evaluated = self.callee.eval(env)?;
+        let id = env.find_ident(&evaluated).unwrap();
 
         match id.clone() {
             Identifier::Alias { mut substitute } => {

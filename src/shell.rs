@@ -8,7 +8,9 @@ use crate::{
 use std::{
     fmt, 
     fs::File, 
-    io::Read
+    io::Read,
+    env,
+    path::Path
 };
 
 #[derive(Debug)]
@@ -33,7 +35,7 @@ impl fmt::Display for Error {
 pub fn execute(input: String, env: &mut Environment) -> Result<i32, Error> {
     let tokens = token::tokenize(input)?;
 
-    println!("{:?}", tokens);
+    //println!("{:?}", tokens);
 
     let commands = command::parse(tokens)?;
     //println!("{:?}", commands);
@@ -62,4 +64,14 @@ fn read_file(path: String) -> Result<String, Error> {
 pub fn run_script(path: String, env: &mut Environment) -> Result<i32, Error> {
     let input = read_file(path)?;
     execute(input, env)
+}
+
+pub fn set_directory(path: &String) -> Result<i32, Error> {
+    match env::set_current_dir(Path::new(path)) {
+        Err(err) => {
+            eprintln!("cd: {}", err);
+            Ok(1)
+        }
+        Ok(_) => Ok(0)
+    }
 }

@@ -48,7 +48,7 @@ impl Token {
         }
     }
 
-    fn get_token(input: String) -> Result<Self, Error> {
+    fn get_token(input: &str) -> Result<Self, Error> {
         let mut chars = input.chars();
 
         let r = chars.next();
@@ -90,7 +90,7 @@ impl Token {
             }
 
             '\'' | '\"' => {
-                let len = skip_until(chars, |ch| ch == c);
+                let len = skip_until(&mut chars, |ch| ch == c);
                 if let Err(_) = len {
                     return Err(Error::SyntaxError("Unterminated `'` string"))
                 }
@@ -102,7 +102,7 @@ impl Token {
             }
 
             _ => {
-                let len = match skip_until(chars, |ch| is_whitespace(ch) || SYMBOLS.contains(ch)) {
+                let len = match skip_until(&mut chars, |ch| is_whitespace(ch) || SYMBOLS.contains(ch)) {
                     Ok(v) => v,
                     Err(v) => v
                 };
@@ -136,11 +136,11 @@ impl Token {
     }
 }
 
-fn skip_until<F>(mut chars: std::str::Chars, cmp: F) -> Result<usize, usize> 
+fn skip_until<F>(chars: &mut std::str::Chars, cmp: F) -> Result<usize, usize> 
     where F: Fn(char) -> bool
 {
     let mut i = 0usize;
-    while !cmp(chars.next().ok_or(i)?) {
+    while !cmp(chars.peekable().next().ok_or(i)?) {
         i += 1;
     }
 
@@ -151,8 +151,8 @@ fn is_whitespace(c: char) -> bool {
     " \t\r".contains(c)
 }
 
-fn skip_whitespace(input: String) -> usize {
-    match skip_until(input.chars(), |ch| !is_whitespace(ch)) {
+fn skip_whitespace(input: &str) -> usize {
+    match skip_until(&mut input.chars(), |ch| !is_whitespace(ch)) {
         Ok(v) => v,
         Err(v) => v
     }
@@ -160,12 +160,19 @@ fn skip_whitespace(input: String) -> usize {
 
 pub fn tokenize(input: String) -> Result<Vec<Token>, Error> {
     let mut tokens = Vec::new();
-    let mut c = 0usize;
+    let mut i = 0usize;
 
-    loop {
-        c += skip_whitespace(input[c..].to_string());
-        let tok = Token::get_token(input[c..].to_string())?;
-        c += tok.len();
+    while i < input.len() {
+        i += skip_whitespace(&input[i..]);
+        if input.as_bytes()[i] as char == '#' {
+            i += match skip_until(&mut input.chars(), |c| c == '\n') {
+                Ok(v) => v,
+                Err(v) => v
+            };
+        }
+
+        let tok = Token::get_token(&input[i..])?;
+        i += tok.len();
 
         tokens.push(tok.clone());
 

@@ -15,17 +15,27 @@ pub enum Value {
     Variable(String),
 }
 
+impl Value {
+    fn parse(tok: &Token) -> Self {
+        match tok.kind() {
+            STRING => Value::String(tok.value().clone()),
+            VARIABLE => Value::Variable(tok.value()[1..].to_string()),
+            _ => Value::PlainText(tok.kind(), tok.value().clone())
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Command {
-    pub callee: String,
+    pub callee: Value,
     pub args: Vec<Value>,
     pub run_in_bg: bool
 }
 
 impl Command {
-    fn parse(tokens: &mut std::slice::Iter<Token>, name: String) -> Self {
+    fn parse(tokens: &mut std::slice::Iter<Token>, callee: Value) -> Self {
         let mut cmd = Command {
-            callee: name,
+            callee,
             args: Vec::new(),
             run_in_bg: false
         };
@@ -39,20 +49,7 @@ impl Command {
                     cmd.run_in_bg = true;
                     break;
                 }
-                STRING => {
-                    cmd.args.push(Value::String(tok.value().clone()))
-                }
-                VARIABLE => {
-                    cmd.args.push(
-                        Value::Variable(
-                            tok.value()[1..]
-                            .to_string()
-                        )
-                    )
-                }
-                _ => {
-                    cmd.args.push(Value::PlainText(tok.kind(), tok.value().clone()))
-                }
+                _ => cmd.args.push(Value::parse(&tok))
             }
         }
 
@@ -82,7 +79,7 @@ pub fn parse(tokens: Vec<Token>) -> Result<Vec<Command>, Error> {
                 continue;
             }
             _ => {
-                commands.push(Command::parse(&mut iter, tok.value().clone()));
+                commands.push(Command::parse(&mut iter, Value::parse(&tok)));
             }
         }
     }
